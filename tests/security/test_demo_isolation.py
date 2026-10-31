@@ -1,4 +1,5 @@
 import pytest
+from fastapi.routing import iter_route_contexts
 
 from app.api.router import api_router
 from app.config import settings
@@ -59,7 +60,12 @@ def test_production_mode_normalization_cannot_bypass_demo_guard(monkeypatch, env
 
 
 def test_vulnerable_demo_functions_are_not_mounted_as_http_routes():
-    assert all(
-        not route.endpoint.__module__.startswith("app.vulnerabilities")
-        for route in api_router.routes
-    )
+    route_contexts = list(iter_route_contexts(api_router.routes))
+
+    assert route_contexts, "Expected API routes to be registered."
+
+    endpoints = [context.endpoint for context in route_contexts]
+
+    assert all(endpoint is not None for endpoint in endpoints)
+
+    assert all(not endpoint.__module__.startswith("app.vulnerabilities") for endpoint in endpoints)
