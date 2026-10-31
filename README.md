@@ -1,108 +1,105 @@
-# Simple To-Do List API Security Check
+# OWASP API Security Lab
 
-## What’s This?
-I’m a beginner learning Python and FastAPI by building a To-Do List API. I’ll check it for the OWASP API Security Top 10 (2023) vulnerabilities one by one to make it safer. Follow along or try it yourself!
+A practical FastAPI learning laboratory for the OWASP API Security Top 10 (2023). The application provides a small authenticated task API with secure-by-default controls; isolated Python demonstrations contrast selected vulnerable patterns with mitigations. The demonstrations are not exposed as HTTP routes.
 
-## Project
-A simple API to add, see, and delete to-do tasks.
+## What Is Included
 
-## What You Need
-- Python (any recent version)
-- A code editor (like VS Code)
+- JWT bearer authentication with Argon2 password hashing and expiring tokens.
+- Owner-scoped task operations and bounded pagination.
+- Paginated administrator-only user listing that returns public fields only.
+- Redis-backed login and registration rate limiting that fails closed when Redis is unavailable.
+- Production checks for strong signing keys, disabled debug mode, and disabled vulnerable demonstrations.
+- An allowlisted outbound JSON client with HTTPS-only URLs, connector-pinned public DNS answers, no redirects, timeouts, streaming response-size limits, content-type checks, and Pydantic validation.
+- Local-only demonstrations and deterministic tests for API1 through API10.
 
-## Tools
-- Python
-- FastAPI (install with `pip install fastapi uvicorn`)
+## OWASP API Security Top 10 (2023)
 
-## To-Do List: Build and Check
+| Category | Learning focus | Guide |
+| --- | --- | --- |
+| API1 | Broken Object Level Authorization | [API1 BOLA](docs/api-top-10/API1-BOLA.md) |
+| API2 | Broken Authentication | [API2 Authentication](docs/api-top-10/API2-Authentication.md) |
+| API3 | Broken Object Property Level Authorization | [API3 Property Authorization](docs/api-top-10/API3-Property-Authorization.md) |
+| API4 | Unrestricted Resource Consumption | [API4 Resource Consumption](docs/api-top-10/API4-Resource-Consumption.md) |
+| API5 | Broken Function Level Authorization | [API5 Function Authorization](docs/api-top-10/API5-Function-Authorization.md) |
+| API6 | Unrestricted Access to Sensitive Business Flows | [API6 Sensitive Flows](docs/api-top-10/API6-Sensitive-Flows.md) |
+| API7 | Server Side Request Forgery | [API7 SSRF](docs/api-top-10/API7-SSRF.md) |
+| API8 | Security Misconfiguration | [API8 Misconfiguration](docs/api-top-10/API8-Security-Misconfiguration.md) |
+| API9 | Improper Inventory Management | [API9 Inventory](docs/api-top-10/API9-Inventory-Management.md) |
+| API10 | Unsafe Consumption of APIs | [API10 Unsafe Consumption](docs/api-top-10/API10-Unsafe-Consumption.md) |
 
-### Step 1: Get Ready
-- [ ] Install Python and check it works.
-  - *Hint*: Type `python --version` in your terminal.
-- [ ] Install FastAPI and Uvicorn.
-  - *Hint*: Run `pip install fastapi uvicorn`.
-- [ ] Make a folder (e.g., `todo-api`) and start a Git repo.
-  - *Hint*: Use `git init`.
+## Technology
 
-### Step 2: Build a Simple API
-- [ ] Make a FastAPI app to show a task list.
-  - *Hint*: Use `@app.get("/tasks")`.
-- [ ] Add ways to add a task (`POST /tasks`) and delete a task (`DELETE /tasks/{id}`).
-  - *Hint*: Store tasks in a list.
-- [ ] Test it in your browser.
-  - *Hint*: Run with `uvicorn` and go to `http://127.0.0.1:8000/tasks`.
+Python 3.12+, FastAPI, SQLAlchemy 2, Pydantic 2, SQLite, Redis, PyJWT, Argon2 (`pwdlib`), aiohttp, pytest, Ruff, Docker Compose, and GitHub Actions.
 
-### Step 3: Check #1 - Wrong Access (BOLA)
-- [ ] See if you can delete someone else’s task.
-  - *Hint*: Try `DELETE /tasks/1` with no check.
-- [ ] Write in `notes.txt` if it’s a problem.
-  - *Hint*: Should tasks belong to someone?
+## Architecture
 
-### Step 4: Check #2 - No Login (Broken Authentication)
-- [ ] Test if anyone can use the API without logging in.
-  - *Hint*: Just visit `/tasks`.
-- [ ] Note in `notes.txt` if it’s too open.
-  - *Hint*: Should it ask who you are?
+`app/api/v1/` contains the versioned routes. `app/core/` owns authentication, permissions, rate limiting, and error handling. SQLAlchemy models and Pydantic schemas are separated under `app/models/` and `app/schemas/`. `app/services/external_api.py` is the outbound API boundary. `app/vulnerabilities/` contains isolated teaching functions, not routers. See [Architecture](docs/architecture.md) and [Security Model](docs/security-model.md).
 
-### Step 5: Check #3 - Changing Too Much (Broken Property Authorization)
-- [ ] Try changing a task with weird data.
-  - *Hint*: Send a `POST /tasks` with extra stuff.
-- [ ] Write in `notes.txt` what happens.
-  - *Hint*: Does it stop bad changes?
+## Setup on Windows PowerShell
 
-### Step 6: Check #4 - Too Much Stuff (Resource Consumption)
-- [ ] Add a giant task and see if it breaks.
-  - *Hint*: Make a super long task name.
-- [ ] Note in `notes.txt` if it’s slow or crashes.
-  - *Hint*: Should it limit big inputs?
+Use Python 3.12 or newer. From the repository root:
 
-### Step 7: Check #5 - Wrong Permissions (Function Authorization)
-- [ ] Test if everyone can do everything.
-  - *Hint*: Add a special action and try it.
-- [ ] Write in `notes.txt` if it’s wrong.
-  - *Hint*: Should some things be locked?
+```powershell
+& "G:\py\python.exe" -m venv .venv
+& ".\.venv\Scripts\python.exe" -m pip install --upgrade pip
+& ".\.venv\Scripts\python.exe" -m pip install -e ".[dev]"
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+```
 
-### Step 8: Check #6 - Overusing It (Sensitive Flows)
-- [ ] Try deleting tasks a lot.
-  - *Hint*: Keep hitting `DELETE /tasks/{id}`.
-- [ ] Note in `notes.txt` if it’s bad.
-  - *Hint*: Should it stop you after a bit?
+The checked-in example uses a development-only signing key. Never deploy with it. The application reads settings from environment variables and `.env`; do not commit `.env`. See [Installation](docs/installation.md) for the full setup and configuration reference.
 
-### Step 9: Check #7 - Tricking the Server (SSRF)
-- [ ] Add a way to fetch a link, test a weird one.
-  - *Hint*: Make a `/fetch` and try a local address.
-- [ ] Write in `notes.txt` if it’s risky.
-  - *Hint*: Should it block strange links?
+## Run Locally
 
-### Step 10: Check #8 - Bad Setup (Security Misconfiguration)
-- [ ] Look for mistakes like showing errors.
-  - *Hint*: Cause an error and see what shows.
-- [ ] Note in `notes.txt` what’s wrong.
-  - *Hint*: Should errors be secret?
+The API requires a reachable Redis service for rate limiting. Configure `REDIS_URL` for your local Redis instance, then run:
 
-### Step 11: Check #9 - Old Stuff (Inventory Management)
-- [ ] Add then remove a feature, see if it stays.
-  - *Hint*: Test an old `/test` link.
-- [ ] Write in `notes.txt` if it’s still there.
-  - *Hint*: Should old things go away?
+```powershell
+& ".\.venv\Scripts\python.exe" -m uvicorn app.main:app --reload --port 8000
+```
 
-### Step 12: Check #10 - Trusting Bad Data (Unsafe APIs)
-- [ ] Pretend to use another API, send junk.
-  - *Hint*: Make a fake call with bad info.
-- [ ] Note in `notes.txt` if it breaks.
-  - *Hint*: Should it check the data?
+Open `http://127.0.0.1:8000/docs` in development. The API is rooted at `/api/v1`; health is available at `/health`.
 
-### Step 13: Fix and Share
-- [ ] Fix one problem (like #1).
-  - *Hint*: Add a simple check, like “is this your task?”
-- [ ] Test it and write how it went in `notes.txt`.
-  - *Hint*: Did it work better?
-- [ ] Put your code on GitHub.
-  - *Hint*: Use `git add`, `git commit`, `git push`.
+## Run with Docker Compose
 
-## Help Out
-Try it yourself or tell me ideas in GitHub!
+Create `.env` from `.env.example` only when one does not already exist. Then:
 
-## Where to Learn More
-- [OWASP API Security Top 10](https://owasp.org/www-project-api-security/)
-- [FastAPI Website](https://fastapi.tiangolo.com/)
+```powershell
+docker compose up --build -d
+docker compose ps
+```
+
+Compose exposes the API at `http://localhost:8001` and keeps Redis on the internal Compose network. The existing `8001:8000` mapping is intentional. Stop the services with `docker compose down`; the named database and Redis volumes remain intact. Do not use volume-removal flags unless you explicitly intend to delete those volumes.
+
+## Tests and Code Quality
+
+```powershell
+& ".\.venv\Scripts\python.exe" -m pytest -q
+& ".\.venv\Scripts\python.exe" scripts/run_security_tests.py
+ruff check .
+ruff format --check .
+```
+
+Tests use in-memory SQLite and mocked external responses; they do not depend on network availability or the local database. More detail is in [Testing](docs/testing.md).
+
+## Secure and Vulnerable Examples
+
+Secure routes are the normal application behavior. Vulnerable examples are pure, local-only functions guarded by `ENABLE_VULNERABLE_DEMOS`; the default is `false`, and production settings reject enabling the flag. They do not create an insecure endpoint, contact a target, or change the normal router. Tests opt in through an isolated fixture. To examine a demonstration, run the focused test listed in its [category guide](docs/api-top-10/).
+
+Do not enable these examples in a deployed or shared environment. The API's ordinary controls and the isolated examples are learning aids, not a substitute for threat modeling, deployment hardening, or independent security review.
+
+## Demo Data
+
+On a disposable, non-production SQLite database, run:
+
+```powershell
+& ".\.venv\Scripts\python.exe" scripts/create_demo_data.py
+```
+
+The script adds demo learner/admin accounts and sample tasks only when absent; it does not overwrite existing rows or remove data. Existing accounts must match the documented password, role, and active state or the script stops without modifying them. Both demo accounts use `DemoPassword123!` and the `example.test` domain. These credentials are public training values only: never reuse them outside a disposable local lab. The script refuses production mode and non-SQLite database URLs.
+
+## Documentation and Contributions
+
+Start with [Installation](docs/installation.md), [Architecture](docs/architecture.md), [Security Model](docs/security-model.md), and the [API category guides](docs/api-top-10/). Contribution workflow and quality requirements are in [CONTRIBUTING.md](CONTRIBUTING.md). Please report security issues using the process in [SECURITY.md](SECURITY.md), not a public issue containing exploit details.
+
+## Limitations
+
+This is an educational example, not a production-ready service. It does not provide a complete operational account lifecycle, distributed inventory transaction system, schema migration system, or production secrets-management workflow. SQLite and the example configuration are for local learning. The external client is intentionally restrictive and requires an explicit exact-host allowlist and a Pydantic response model. Review the [security model](docs/security-model.md) before adapting any component.
